@@ -55,8 +55,16 @@ else
       if git apply --check "$PATCH_FILE" 2>/dev/null; then
         echo "Applying snapshot-streaming compatibility patch..."
         git apply "$PATCH_FILE"
+      elif patch -p1 --fuzz=3 --dry-run < "$PATCH_FILE" >/dev/null 2>&1; then
+        echo "git apply rejected the patch (context drift); applying with fuzz via GNU patch..."
+        patch -p1 --fuzz=3 < "$PATCH_FILE"
       else
-        echo "Patch already applied or not needed, skipping..."
+        # Could be already-applied-upstream (harmless) OR a stale/drifted patch that no longer
+        # matches this snapshot-streaming branch (NOT harmless — SS won't compile against the
+        # SharedConfig API). Warn loudly instead of silently skipping so the drift is diagnosable.
+        echo "WARNING: snapshot-streaming.patch did not apply (git apply + fuzzy patch both failed)." >&2
+        echo "         If already applied upstream this is fine; if the patch is stale vs this SS" >&2
+        echo "         branch, regenerate it (see testnet-hetzner-migration/snapshot-streaming-blocker.md)." >&2
       fi
       cd "$SCRIPT_DIR"
     fi

@@ -44,6 +44,11 @@ fi
 NODE0_PEER_ID=$(cat "$PROJECT_ROOT/docker/config/local-test-keys/0/peer_id")
 NODE0_ADDRESS=$(cat "$PROJECT_ROOT/docker/config/local-test-keys/0/address")
 
+# Node phases (build -> ship -> start -> tx-sender). Skipped with --skip-nodes so that
+# snapshot-streaming / monitoring can be (re)deployed without restarting node containers
+# (restarting node-0 trips the genesis guard on a live chain). Default: run them, so
+# nightly behaviour is unchanged.
+if [ "$SKIP_NODES" != "true" ]; then
 # === Phase 1: Build ===
 if [ "$SKIP_ASSEMBLY" != "true" ]; then
   log "Running assembly"
@@ -268,6 +273,8 @@ if [ -f "$TX_SENDER_JAR" ] && [ -s "$TX_SENDER_JAR" ] && [ -f "$TX_SENDER_CONF" 
 else
   log "Skipping tx-sender (tools.jar or tx-sender.conf not found)"
 fi
+
+fi  # end node phases (skipped when SKIP_NODES=true)
 
 # === Phase 6: Snapshot-streaming on 4th node ===
 if [ -n "$SS_NODE" ]; then
